@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Precios Vifer</title>
+  <style>
+    :root {
+      --bg: #f6f7f9; --card: #fff; --text: #1c1e21; --muted: #6b7280;
+      --accent: #1d4ed8; --border: #e5e7eb; --error: #b91c1c;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1115; --card: #181b21; --text: #eceff4; --muted: #9aa3b2;
+        --accent: #6ea0ff; --border: #2a2f3a; --error: #f87171;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 24px 16px; background: var(--bg); color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    main { max-width: 520px; margin: 0 auto; }
+    h1 { font-size: 1.4rem; margin: 0 0 16px; }
+    form { display: flex; gap: 8px; }
+    input {
+      flex: 1; padding: 12px; font-size: 1rem; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--card); color: var(--text);
+    }
+    button {
+      padding: 12px 18px; font-size: 1rem; border: 0; border-radius: 8px;
+      background: var(--accent); color: #fff; cursor: pointer;
+    }
+    button:disabled { opacity: .6; cursor: wait; }
+    .card {
+      margin-top: 16px; padding: 16px; background: var(--card);
+      border: 1px solid var(--border); border-radius: 12px;
+    }
+    .nombre { font-weight: 600; margin-bottom: 4px; }
+    .base { color: var(--muted); margin-bottom: 12px; }
+    .base a { color: var(--accent); }
+    table { width: 100%; border-collapse: collapse; }
+    td { padding: 10px 4px; border-top: 1px solid var(--border); }
+    td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+    td button { padding: 4px 8px; font-size: .8rem; margin-left: 8px; background: transparent; color: var(--accent); border: 1px solid var(--border); }
+    .error { color: var(--error); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Precios Vifer</h1>
+
+    <form id="form">
+      <input id="codigo" placeholder="Escribe el código" autocomplete="off" autofocus required />
+      <button id="btn" type="submit">Buscar</button>
+    </form>
+
+    <div id="resultado"></div>
+  </main>
+
+  <script>
+    const form = document.getElementById("form");
+    const input = document.getElementById("codigo");
+    const btn = document.getElementById("btn");
+    const out = document.getElementById("resultado");
+
+    const money = (n) =>
+      new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n);
+
+    function esc(s) {
+      return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+      }[c]));
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const codigo = input.value.trim();
+      if (!codigo) return;
+
+      btn.disabled = true;
+      out.innerHTML = '<div class="card">Buscando…</div>';
+
+      try {
+        const res = await fetch("/api/precio?codigo=" + encodeURIComponent(codigo));
+        const data = await res.json();
+
+        if (!res.ok) {
+          out.innerHTML = `<div class="card error">${esc(data.error)}${data.detalle ? "<br><small>" + esc(data.detalle) + "</small>" : ""}</div>`;
+          return;
+        }
+
+        const filas = data.precios
+          .map(
+            (p) => `<tr>
+              <td>+ ${esc(p.margen)}</td>
+              <td>${money(p.precio)}
+                <button type="button" data-copy="${p.precio}">Copiar</button>
+              </td>
+            </tr>`
+          )
+          .join("");
+
+        out.innerHTML = `
+          <div class="card">
+            <div class="nombre">${esc(data.nombre || data.codigo)}</div>
+            <div class="base">
+              Precio en Vifer: <strong>${money(data.precio_base)}</strong>
+              · <a href="${esc(data.url)}" target="_blank" rel="noopener">ver en vifer.mx</a>
+            </div>
+            <table>${filas}</table>
+          </div>`;
+      } catch (err) {
+        out.innerHTML = '<div class="card error">No se pudo conectar. Intenta de nuevo.</div>';
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    out.addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-copy]");
+      if (!b) return;
+      navigator.clipboard.writeText(b.dataset.copy);
+      const old = b.textContent;
+      b.textContent = "Copiado";
+      setTimeout(() => (b.textContent = old), 1200);
+    });
+  </script>
+</body>
+</html>
