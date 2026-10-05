@@ -1,0 +1,12 @@
+{
+  "name": "vifer-precios",
+  "version": "1.0.0",
+  "description": "Busca un código en vifer.mx y devuelve el precio con márgenes de 20% a 40%",
+  "private": true,
+  "engines": {
+    "node": "20.x"
+  },
+  "dependencies": {
+    "cheerio": "1.0.0"
+  }
+}
