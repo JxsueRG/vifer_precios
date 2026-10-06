@@ -11,10 +11,6 @@ const {
 // Solo funciona si en Vercel pones la variable DEBUG=1.
 // Sirve para ver qué está leyendo el scraper y ajustar los selectores.
 // Bórrala (o quita este archivo) cuando ya todo funcione.
-module.exports = async (req, res) => {
-  if (process.env.DEBUG !== "1") {
-    return res.status(404).json({ error: "Debug desactivado" });
-  }
 
   const codigo = String(req.query.codigo || "").trim();
   if (!codigo) return res.status(400).json({ error: "Falta ?codigo=" });
